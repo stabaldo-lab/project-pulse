@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Pulse — Dr. T</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: linear-gradient(160deg, #0a1628 0%, #0d1f3c 50%, #0a1628 100%);
+      background-attachment: fixed;
+      font-family: 'DM Mono', monospace;
+      color: #e8f0f7;
+      min-height: 100vh;
+    }
+    textarea:focus, input:focus, select:focus {
+      border-color: rgba(91,163,224,0.4) !important;
+      outline: none;
+    }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    select option { background: #0d1f3c; color: #e8f0f7; }
+    * { -webkit-tap-highlight-color: transparent; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const PROJECT_TYPES = [
+      "New School Partnership",
+      "PD Contract / Delivery",
+      "Grant",
+      "Course / Teaching",
+      "Speaking Engagement",
+      "Consulting",
+      "Other / New Project",
+    ];
+
+    const TABS = ["Process Meeting", "Projects", "Team Update"];
+
+    const S = {
+      section: {
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: "12px",
+        padding: "20px",
+        marginBottom: "16px",
+      },
+      label: {
+        display: "block",
+        fontSize: "11px",
+        letterSpacing: "0.12em",
+        textTransform: "uppercase",
+        color: "#8b9eb0",
+        marginBottom: "8px",
+        fontFamily: "'DM Mono', monospace",
+      },
+      input: {
+        width: "100%",
+        background: "rgba(0,0,0,0.3)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: "8px",
+        color: "#e8f0f7",
+        fontFamily: "'DM Mono', monospace",
+        fontSize: "13px",
+        padding: "10px 12px",
+        lineHeight: "1.6",
+        boxSizing: "border-box",
+        height: "42px",
+      },
+      textarea: {
+        width: "100%",
+        background: "rgba(0,0,0,0.3)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: "8px",
+        color: "#e8f0f7",
+        fontFamily: "'DM Mono', monospace",
+        fontSize: "13px",
+        padding: "12px",
+        resize: "vertical",
+        lineHeight: "1.6",
+        boxSizing: "border-box",
+      },
+      btnPrimary: {
+        background: "linear-gradient(135deg, #2d7dd2, #1a5fa8)",
+        border: "none",
+        borderRadius: "8px",
+        color: "white",
+        cursor: "pointer",
+        fontFamily: "'DM Mono', monospace",
+        fontSize: "13px",
+        letterSpacing: "0.06em",
+        padding: "12px 28px",
+        fontWeight: "600",
+      },
+      btnSecondary: {
+        background: "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        borderRadius: "8px",
+        color: "#8b9eb0",
+        cursor: "pointer",
+        fontFamily: "'DM Mono', monospace",
+        fontSize: "12px",
+        letterSpacing: "0.06em",
+        padding: "8px 16px",
+      },
+      btnCopy: {
+        background: "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(91,163,224,0.3)",
+        borderRadius: "8px",
+        color: "#5ba3e0",
+        cursor: "pointer",
+        fontFamily: "'DM Mono', monospace",
+        fontSize: "11px",
+        letterSpacing: "0.06em",
+        padding: "5px 12px",
+      },
+    };
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.cssText = "position:fixed;opacity:0;top:0;left:0;";
+        document.body.appendChild(ta);
+        ta.focus(); ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+    }
+
+    function CopyButton({ text, label = "Copy" }) {
+      const [copied, setCopied] = useState(false);
+      const handle = async (e) => {
+        e.stopPropagation();
+        await copyText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+      return <button style={S.btnCopy} onClick={handle}>{copied ? "✓ Copied!" : label}</button>;
+    }
+
+    function OutputBlock({ title, content, accent = "#5ba3e0" }) {
+      if (!content) return null;
+      return (
+        <div style={{ ...S.section, borderColor: accent + "44" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
+            <span style={{ ...S.label, margin:0, color:accent }}>{title}</span>
+            <CopyButton text={content} />
+          </div>
+          <div style={{ whiteSpace:"pre-wrap", fontFamily:"'DM Mono',monospace", fontSize:"13px", color:"#c8dce8", lineHeight:"1.7" }}>
+            {content}
+          </div>
+        </div>
+      );
+    }
+
+    function RemindersBlock({ items }) {
+      const [selected, setSelected] = useState(() => {
+        const init = {};
+        items.forEach((item, i) => {
+          const o = (item.owner || "").toLowerCase();
+          init[i] = o.includes("dr") || o.includes("shannon") || o === "";
+        });
+        return init;
+      });
+      const [copied, setCopied] = useState(false);
+
+      if (!items || items.length === 0) return null;
+
+      const sorted = [...items.map((item, i) => ({ ...item, origIdx: i }))].sort((a, b) => {
+        const aM = (a.owner||"").toLowerCase().includes("dr") || (a.owner||"") === "";
+        const bM = (b.owner||"").toLowerCase().includes("dr") || (b.owner||"") === "";
+        return bM - aM;
+      });
+
+      const myItems = sorted.filter(i => (i.owner||"").toLowerCase().includes("dr") || (i.owner||"") === "");
+      const theirItems = sorted.filter(i => !(i.owner||"").toLowerCase().includes("dr") && (i.owner||"") !== "");
+      const selectedItems = sorted.filter(i => selected[i.origIdx]);
+
+      const toggleAll = (val) => {
+        const next = {};
+        items.forEach((_, i) => { next[i] = val; });
+        setSelected(next);
+      };
+
+      const handleCopy = async (e) => {
+        e.stopPropagation();
+        const text = selectedItems.map(i => `${i.task}${i.due ? " — Due: " + i.due : ""}`).join("\n");
+        await copyText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+
+      const renderItem = (item) => (
+        <div
+          key={item.origIdx}
+          onClick={() => setSelected(p => ({ ...p, [item.origIdx]: !p[item.origIdx] }))}
+          style={{
+            display:"flex", alignItems:"flex-start", gap:"10px",
+            padding:"10px 8px", borderRadius:"6px", cursor:"pointer",
+            background: selected[item.origIdx] ? "rgba(91,163,224,0.07)" : "transparent",
+            marginBottom:"2px", transition:"background 0.15s",
+          }}
+        >
+          <div style={{
+            width:"16px", height:"16px", borderRadius:"4px", marginTop:"1px", flexShrink:0,
+            border: selected[item.origIdx] ? "2px solid #5ba3e0" : "2px solid rgba(255,255,255,0.2)",
+            background: selected[item.origIdx] ? "#5ba3e0" : "transparent",
+            display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s",
+          }}>
+            {selected[item.origIdx] && <span style={{ color:"white", fontSize:"10px", lineHeight:1 }}>✓</span>}
+          </div>
+          <div style={{ flex:1 }}>
+            <div style={{ color:"#e8f0f7", fontSize:"13px", fontFamily:"'DM Mono',monospace" }}>{item.task}</div>
+            <div style={{ display:"flex", gap:"12px", marginTop:"3px" }}>
+              {item.owner && <span style={{ color:"#8b9eb0", fontSize:"11px" }}>Owner: {item.owner}</span>}
+              {item.due && <span style={{ color:"#e07d35", fontSize:"11px" }}>Due: {item.due}</span>}
+            </div>
+          </div>
+        </div>
+      );
+
+      return (
+        <div style={{ ...S.section, borderColor:"#e07d3555" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"4px" }}>
+            <span style={{ ...S.label, margin:0, color:"#e07d35" }}>Next Steps</span>
+            <div style={{ display:"flex", gap:"8px" }}>
+              <button style={{ ...S.btnSecondary, fontSize:"10px", padding:"3px 8px" }} onClick={() => toggleAll(true)}>All</button>
+              <button style={{ ...S.btnSecondary, fontSize:"10px", padding:"3px 8px" }} onClick={() => toggleAll(false)}>None</button>
+              <button
+                style={{ ...S.btnCopy, opacity: selectedItems.length === 0 ? 0.4 : 1 }}
+                onClick={handleCopy}
+                disabled={selectedItems.length === 0}
+              >
+                {copied ? "✓ Copied!" : `Copy Selected (${selectedItems.length})`}
+              </button>
+            </div>
+          </div>
+          <div style={{ color:"#8b9eb0", fontSize:"11px", marginBottom:"12px" }}>Check items → copy → paste into Reminders</div>
+
+          {myItems.length > 0 && (
+            <>
+              <div style={{ ...S.label, color:"#5ba3e0", marginBottom:"4px" }}>My Actions</div>
+              {myItems.map(renderItem)}
+            </>
+          )}
+          {theirItems.length > 0 && (
+            <>
+              <div style={{ ...S.label, color:"#8b9eb0", marginTop:"12px", marginBottom:"4px" }}>Others' Actions</div>
+              {theirItems.map(renderItem)}
+            </>
+          )}
+        </div>
+      );
+    }
+
+    function ProcessTab({ onProjectUpdate, apiKey }) {
+      const [projectName, setProjectName] = useState("");
+      const [projectType, setProjectType] = useState(PROJECT_TYPES[0]);
+      const [transcript, setTranscript] = useState("");
+      const [notes, setNotes] = useState("");
+      const [knownNextSteps, setKnownNextSteps] = useState("");
+      const [loading, setLoading] = useState(false);
+      const [result, setResult] = useState(null);
+
+      const handleProcess = async () => {
+        if (!transcript && !notes) return;
+        setLoading(true);
+        setResult(null);
+
+        const prompt = `You are an executive assistant helping Dr. Shannon Tabaldo (Dr. T) who works at LMU's iDEAL Institute training educators in AI integration across Catholic education. She is always in back-to-back meetings and needs raw inputs transformed into organized outputs.
+
+INPUT:
+Project Name: ${projectName || "Unknown — infer from context"}
+Project Type: ${projectType}
+Otter AI Transcript: ${transcript || "(none provided)"}
+Meeting Notes: ${notes || "(none provided)"}
+Known Next Steps: ${knownNextSteps || "(none provided)"}
+
+Respond ONLY with a valid JSON object, no preamble, no markdown fences:
+
+{
+  "projectName": "inferred or provided project name",
+  "projectType": "one of the project types",
+  "meetingSummary": "1-2 sentence opening stating who met and overall purpose/outcome. Then 3-5 bullet points using the • character, one per line, covering key topics discussed, decisions made, and current status. Past tense, professional but warm.",
+  "nextSteps": [
+    { "task": "specific action item", "owner": "Dr. T or other person name", "due": "date or timeframe if mentioned, otherwise null" }
+  ],
+  "appleNote": "Plain text only — NO markdown, NO # headers, NO --- dividers, NO asterisks. Format: PROJECT NAME in all caps, then date on next line, blank line, then MEETING SUMMARY label followed by the summary, blank line, then NEXT STEPS label followed by each action item on its own line starting with a dash.",
+  "teamUpdateBlurb": "2-3 sentences in first person as Dr. T, suitable for reading aloud at a team meeting or pasting into Slack. Professional and concise."
+}`;
+
+        try {
+          const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01",
+              "anthropic-dangerous-direct-browser-access": "true",
+            },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 4000,
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+          const data = await response.json();
+          if (data.error) { setResult({ error: "API error: " + (data.error.message || JSON.stringify(data.error)) }); setLoading(false); return; }
+          const text = data.content?.map(b => b.text || "").join("") || "";
+          const clean = text.replace(/```json|```/g, "").trim();
+          const parsed = JSON.parse(clean);
+          setResult(parsed);
+          if (parsed.projectName) onProjectUpdate(parsed.projectName, parsed.projectType, parsed.appleNote, parsed.meetingSummary);
+        } catch(e) {
+          setResult({ error: "Error: " + e.message });
+        }
+        setLoading(false);
+      };
+
+      return (
+        <div>
+          <div style={S.section}>
+            <label style={S.label}>Project Name</label>
+            <input style={S.input} placeholder="e.g. St. Monica School Partnership..." value={projectName} onChange={e => setProjectName(e.target.value)} />
+            <div style={{ height:"12px" }} />
+            <label style={S.label}>Project Type</label>
+            <select style={{ ...S.input, cursor:"pointer" }} value={projectType} onChange={e => setProjectType(e.target.value)}>
+              {PROJECT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+
+          <div style={S.section}>
+            <label style={S.label}>Otter AI Transcript (paste full text)</label>
+            <textarea style={{ ...S.textarea, minHeight:"120px" }} placeholder="Paste your Otter transcript here..." value={transcript} onChange={e => setTranscript(e.target.value)} />
+            <div style={{ height:"12px" }} />
+            <label style={S.label}>Your Notes</label>
+            <textarea style={{ ...S.textarea, minHeight:"80px" }} placeholder="Any additional notes from the meeting..." value={notes} onChange={e => setNotes(e.target.value)} />
+            <div style={{ height:"12px" }} />
+            <label style={S.label}>Known Next Steps (optional)</label>
+            <textarea style={{ ...S.textarea, minHeight:"60px" }} placeholder="e.g. Send proposal by Friday..." value={knownNextSteps} onChange={e => setKnownNextSteps(e.target.value)} />
+          </div>
+
+          <button
+            style={{ ...S.btnPrimary, width:"100%", opacity: loading || (!transcript && !notes) ? 0.6 : 1 }}
+            onClick={handleProcess}
+            disabled={loading || (!transcript && !notes)}
+          >
+            {loading ? "Processing..." : "Process Meeting →"}
+          </button>
+
+          {result?.error && (
+            <div style={{ ...S.section, borderColor:"#e0555588", marginTop:"20px", color:"#e08080" }}>{result.error}</div>
+          )}
+
+          {result && !result.error && (
+            <div style={{ marginTop:"24px" }}>
+              <div style={{ ...S.label, marginBottom:"16px", fontSize:"13px", color:"#5ba3e0" }}>✓ Processed: {result.projectName}</div>
+              <OutputBlock title="Meeting Summary" content={result.meetingSummary} accent="#5ba3e0" />
+              <RemindersBlock items={result.nextSteps} />
+              <OutputBlock title="Apple Notes Entry (paste directly into project note)" content={result.appleNote} accent="#a78bfa" />
+              <OutputBlock title="Team Update Blurb" content={result.teamUpdateBlurb} accent="#5bc97e" />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function ProjectsTab({ projects }) {
+      const [selected, setSelected] = useState(null);
+      if (projects.length === 0) {
+        return (
+          <div style={{ ...S.section, textAlign:"center", padding:"40px 20px" }}>
+            <div style={{ color:"#8b9eb0", fontFamily:"'DM Mono',monospace", fontSize:"13px" }}>
+              No projects yet. Process a meeting to create your first project entry.
+            </div>
+          </div>
+        );
+      }
+      return (
+        <div>
+          {projects.map((p, i) => (
+            <div
+              key={i}
+              style={{ ...S.section, cursor:"pointer", borderColor: selected===i ? "#2d7dd2aa" : "rgba(255,255,255,0.1)", transition:"border-color 0.2s" }}
+              onClick={() => setSelected(selected===i ? null : i)}
+            >
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                <div>
+                  <div style={{ color:"#e8f0f7", fontFamily:"'DM Mono',monospace", fontSize:"14px", fontWeight:"600" }}>{p.name}</div>
+                  <div style={{ color:"#8b9eb0", fontSize:"11px", marginTop:"4px", fontFamily:"'DM Mono',monospace" }}>{p.type} · {p.updates.length} update{p.updates.length!==1?"s":""}</div>
+                </div>
+                <span style={{ color:"#8b9eb0", fontSize:"14px" }}>{selected===i?"▲":"▼"}</span>
+              </div>
+              {selected===i && (
+                <div style={{ marginTop:"16px", borderTop:"1px solid rgba(255,255,255,0.07)", paddingTop:"16px" }}>
+                  {p.updates.map((u, j) => (
+                    <div key={j} style={{ marginBottom:"16px" }}>
+                      <div style={{ ...S.label, margin:"0 0 6px", color:"#5ba3e0" }}>{u.date}</div>
+                      <div style={{ color:"#c8dce8", fontFamily:"'DM Mono',monospace", fontSize:"12px", lineHeight:"1.7", whiteSpace:"pre-wrap" }}>{u.summary}</div>
+                      {j < p.updates.length-1 && <div style={{ borderBottom:"1px solid rgba(255,255,255,0.05)", marginTop:"16px" }} />}
+                    </div>
+                  ))}
+                  <div style={{ marginTop:"12px" }}>
+                    <CopyButton text={p.updates.map(u => `${u.date}\n${u.summary}`).join("\n\n---\n\n")} />
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function TeamUpdateTab({ projects, apiKey }) {
+      const [loading, setLoading] = useState(false);
+      const [update, setUpdate] = useState("");
+      const [timeframe, setTimeframe] = useState("this week");
+
+      const handleGenerate = async () => {
+        if (projects.length === 0) return;
+        setLoading(true);
+        setUpdate("");
+        const summaries = projects.map(p => {
+          const recent = p.updates.slice(-2).map(u => u.summary).join(" ");
+          return `${p.name} (${p.type}): ${recent}`;
+        }).join("\n\n");
+        const prompt = `You are helping Dr. Shannon Tabaldo prepare a brief team status update for ${timeframe}.\n\nHere are her active projects and recent activity:\n${summaries}\n\nWrite a concise, professional team update she could read aloud or paste into a team meeting doc or Slack. Use first person. Group by theme if helpful. Be specific but brief — aim for 150-200 words total. No bullet points, just clean paragraphs. Start directly with the update, no preamble.`;
+        try {
+          const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01",
+              "anthropic-dangerous-direct-browser-access": "true",
+            },
+            body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role:"user", content:prompt }] }),
+          });
+          const data = await response.json();
+          const text = data.content?.map(b => b.text||"").join("") || "";
+          setUpdate(text.trim());
+        } catch(e) {
+          setUpdate("Something went wrong. Try again.");
+        }
+        setLoading(false);
+      };
+
+      return (
+        <div>
+          <div style={S.section}>
+            <label style={S.label}>Timeframe</label>
+            <input style={S.input} value={timeframe} onChange={e => setTimeframe(e.target.value)} placeholder="e.g. this week, the past two weeks..." />
+            <div style={{ height:"16px" }} />
+            <button
+              style={{ ...S.btnPrimary, width:"100%", opacity: loading||projects.length===0 ? 0.6:1 }}
+              onClick={handleGenerate}
+              disabled={loading||projects.length===0}
+            >
+              {loading ? "Generating..." : projects.length===0 ? "Process meetings first" : "Generate Team Update →"}
+            </button>
+          </div>
+          {update && <OutputBlock title="Team Update" content={update} accent="#5bc97e" />}
+        </div>
+      );
+    }
+
+    function App() {
+      const [activeTab, setActiveTab] = useState(0);
+      const [projects, setProjects] = useState(() => {
+        try { return JSON.parse(localStorage.getItem("projectpulse_projects") || "[]"); } catch { return []; }
+      });
+      const [apiKey, setApiKey] = useState(() => {
+        try { return localStorage.getItem("projectpulse_apikey") || ""; } catch { return ""; }
+      });
+      const [apiKeySaved, setApiKeySaved] = useState(() => {
+        try { return !!localStorage.getItem("projectpulse_apikey"); } catch { return false; }
+      });
+      const [keyInput, setKeyInput] = useState("");
+
+      const handleSaveKey = () => {
+        if (keyInput.startsWith("sk-ant-")) {
+          try { localStorage.setItem("projectpulse_apikey", keyInput); } catch {}
+          setApiKey(keyInput);
+          setApiKeySaved(true);
+        }
+      };
+
+      const handleProjectUpdate = (name, type, note, summary) => {
+        const date = new Date().toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+        setProjects(prev => {
+          const existing = prev.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
+          let next;
+          if (existing >= 0) {
+            next = [...prev];
+            next[existing] = { ...next[existing], updates: [...next[existing].updates, { date, summary, note }] };
+          } else {
+            next = [...prev, { name, type, updates: [{ date, summary, note }] }];
+          }
+          try { localStorage.setItem("projectpulse_projects", JSON.stringify(next)); } catch {}
+          return next;
+        });
+      };
+
+      return (
+        <div style={{ minHeight:"100vh", fontFamily:"'DM Mono',monospace" }}>
+          {/* Header */}
+          <div style={{ padding:"28px 24px 0", borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ display:"flex", alignItems:"baseline", gap:"12px", marginBottom:"4px" }}>
+              <h1 style={{ fontFamily:"'Fraunces',serif", fontSize:"26px", fontWeight:"600", color:"#e8f0f7", letterSpacing:"-0.01em" }}>
+                Project Pulse
+              </h1>
+              <span style={{ color:"#2d7dd2", fontSize:"11px", letterSpacing:"0.1em", textTransform:"uppercase" }}>by Dr. T</span>
+            </div>
+            <p style={{ color:"#8b9eb0", fontSize:"12px", margin:"0 0 20px", lineHeight:"1.5" }}>Drop your meeting. Get your outputs.</p>
+            <div style={{ display:"flex" }}>
+              {TABS.map((tab, i) => (
+                <button key={tab} onClick={() => setActiveTab(i)} style={{
+                  background:"none", border:"none",
+                  borderBottom: activeTab===i ? "2px solid #2d7dd2" : "2px solid transparent",
+                  color: activeTab===i ? "#5ba3e0" : "#8b9eb0",
+                  cursor:"pointer", fontFamily:"'DM Mono',monospace", fontSize:"12px",
+                  letterSpacing:"0.08em", padding:"8px 16px 12px", transition:"all 0.15s",
+                }}>
+                  {tab}
+                  {tab==="Projects" && projects.length>0 && (
+                    <span style={{ background:"#2d7dd2", borderRadius:"10px", color:"white", fontSize:"10px", marginLeft:"6px", padding:"1px 6px" }}>
+                      {projects.length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div style={{ padding:"24px", maxWidth:"680px", margin:"0 auto" }}>
+
+            {/* API Key Banner */}
+            {!apiKeySaved ? (
+              <div style={{ ...S.section, borderColor:"#e07d3588", marginBottom:"24px" }}>
+                <label style={{ ...S.label, color:"#e07d35" }}>Anthropic API Key Required</label>
+                <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
+                  <input
+                    style={{ ...S.input, flex:1, letterSpacing:"0.05em" }}
+                    type="password"
+                    placeholder="sk-ant-..."
+                    value={keyInput}
+                    onChange={e => setKeyInput(e.target.value)}
+                    onKeyDown={e => e.key==="Enter" && handleSaveKey()}
+                  />
+                  <button style={{ ...S.btnPrimary, whiteSpace:"nowrap", padding:"10px 20px" }} onClick={handleSaveKey}>
+                    Save Key
+                  </button>
+                </div>
+                <div style={{ color:"#8b9eb0", fontSize:"11px", marginTop:"8px" }}>
+                  Saved to this browser only. Get a key at platform.anthropic.com → API Keys.
+                </div>
+              </div>
+            ) : (
+              <div style={{ ...S.section, borderColor:"#5bc97e44", marginBottom:"24px", padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ color:"#5bc97e", fontSize:"12px" }}>✓ API Key connected</span>
+                <button style={{ ...S.btnSecondary, fontSize:"11px", padding:"4px 10px" }} onClick={() => {
+                  try { localStorage.removeItem("projectpulse_apikey"); } catch {}
+                  setApiKeySaved(false); setApiKey(""); setKeyInput("");
+                }}>Change</button>
+              </div>
+            )}
+
+            {activeTab===0 && <ProcessTab onProjectUpdate={handleProjectUpdate} apiKey={apiKey} />}
+            {activeTab===1 && <ProjectsTab projects={projects} />}
+            {activeTab===2 && <TeamUpdateTab projects={projects} apiKey={apiKey} />}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
